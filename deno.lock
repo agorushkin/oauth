@@ -1,0 +1,22 @@
+{
+  "version": "3",
+  "remote": {
+    "https://deno.land/std@0.221.0/encoding/_util.ts": "beacef316c1255da9bc8e95afb1fa56ed69baef919c88dc06ae6cb7a6103d376",
+    "https://deno.land/std@0.221.0/encoding/base64.ts": "8ccae67a1227b875340a8582ff707f37b131df435b07080d3bb58e07f5f97807",
+    "https://deno.land/std@0.221.0/encoding/base64url.ts": "9cc46cf510436be63ac00ebf97a7de1993e603ca58e1853b344bf90d80ea9945",
+    "https://raw.githubusercontent.com/Zaubrik/djwt/09e3de7/algorithm.ts": "b1c6645f9dbd6e6c47c123a3b18c28b956f91c65ed17f5b6d5d968fc3750542b",
+    "https://raw.githubusercontent.com/Zaubrik/djwt/09e3de7/deps.ts": "a7954fe567f2097b4f6aca11d091b6df658e485a817ac4dee47257ed5c28fd6e",
+    "https://raw.githubusercontent.com/Zaubrik/djwt/09e3de7/mod.ts": "962d8f2c4d6a4db111f45d777b152356aec31ba7db0ca664601175a422629857",
+    "https://raw.githubusercontent.com/Zaubrik/djwt/09e3de7/signature.ts": "16238fbf558267c85dd6c0178045f006c8b914a7301db87149f3318326569272",
+    "https://raw.githubusercontent.com/Zaubrik/djwt/09e3de7/util.ts": "5cb264d2125c553678e11446bcfa0494025d120e3f59d0a3ab38f6800def697d",
+    "https://raw.githubusercontent.com/agorushkin/http-server/6e31411/lib/event.ts": "f26ef70eb5dffb2dc315298d542688fba91aed3044b409cee5d2e25af5ab7fcf",
+    "https://raw.githubusercontent.com/agorushkin/http-server/6e31411/lib/router.ts": "19a70fb95052bdebeeecb09871ccbe0bb28398ff9f66da4c7559a39909ee3bce",
+    "https://raw.githubusercontent.com/agorushkin/http-server/6e31411/lib/server.ts": "e229799994e519cc0994a4b55d63ffc7dc63690b8a3015276350c34994fe8a86",
+    "https://raw.githubusercontent.com/agorushkin/http-server/6e31411/lib/utils/broadcaster.ts": "089b3c020c682ab8febec3b2d4d66a0247150b7496abd5612a57ceff36bd0e09",
+    "https://raw.githubusercontent.com/agorushkin/http-server/6e31411/lib/utils/extension.ts": "c5c567ad479b992a8efd35d98439b0388e741427a0571cad781add67b4f482e7",
+    "https://raw.githubusercontent.com/agorushkin/http-server/6e31411/lib/utils/file.ts": "de38a99d42cadf38567152480315e67e745631ea6e5cb04b1e4775406b5553d5",
+    "https://raw.githubusercontent.com/agorushkin/http-server/6e31411/lib/utils/mime-types.ts": "1608cba4be5b0ca4a1654a69c79b63f1372abf9a5d6064adecbb2390028369e1",
+    "https://raw.githubusercontent.com/agorushkin/http-server/6e31411/lib/utils/serve.ts": "a2ebeb517581a89457521288413fbd9558f66693b2b26db2379bef5af80bafc6",
+    "https://raw.githubusercontent.com/agorushkin/http-server/6e31411/mod.ts": "7d59ab7b99d0d4342ab06883b5ca388fd6c1dc02a390616358974a08e8552066"
+  }
+}

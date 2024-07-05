@@ -1,0 +1,17 @@
+{
+  "imports": {
+    "./": "./",
+    "/": "./",
+    "x/http": "https://raw.githubusercontent.com/agorushkin/http-server/6e31411/mod.ts",
+    "x/jwt": "https://raw.githubusercontent.com/Zaubrik/djwt/09e3de7/mod.ts"
+  },
+  "tasks": {
+    "debug": "deno run -A --watch main.ts"
+  },
+  "fmt": {
+    "useTabs": false,
+    "indentWidth": 2,
+    "semiColons": true,
+    "singleQuote": true
+  }
+}

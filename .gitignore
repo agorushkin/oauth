@@ -1,0 +1,6 @@
+.DS_Store
+
+# Private files
+
+lib/data/data.json
+key/
