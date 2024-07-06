@@ -1,6 +1,6 @@
 import type { ServerResponse } from 'x/http';
 
-import { RESPONSES } from '/lib/data/consts.ts';
+import { RESPONSES } from '../../data/constants.ts';
 
 export const res = (
   type: keyof typeof RESPONSES,

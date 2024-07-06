@@ -1,31 +1,38 @@
-import { JWTPayload } from '/lib/data/types.ts';
+import { Permission, TokenContent } from '/lib/data/types.ts';
 
-import { create, getNumericDate, verify } from 'x/jwt';
+import { Scope } from '/lib/src/auth/scope.ts';
+
+import { create, verify } from 'x/jwt';
 import { key } from '/lib/src/crypto/key.ts';
-import { generateUlid } from '/lib/src/crypto/ulid.ts';
+import { generateULID } from '/lib/src/crypto/ulid.ts';
+import { elapse } from '/lib/src/util/elapse.ts';
 import { guard } from '/lib/src/util/guard.ts';
 
-export const generateToken = async (user: string, scope: number) => {
-  const expires = getNumericDate(60 * 60);
+export class Token {
+  static generate = async (user: string, permissions: Permission[]) => {
+    const expires = elapse(60 * 60);
+    const refresh = generateULID();
+    const scope = Scope.from(permissions);
+    const id = generateULID();
 
-  const token = await create({
-    alg: 'HS512',
-    typ: 'JWT',
-  }, {
-    usr: user,
-    scp: scope,
-    exp: expires,
-  }, key);
+    const token = await create({
+      alg: 'HS512',
+      typ: 'JWT',
+    }, {
+      usr: user,
+      scp: scope,
+      exp: expires,
+      jti: id,
+    }, key);
 
-  return {
-    token,
-    expires,
-    refresh: generateUlid(),
+    return { token, refresh, expires };
   };
-};
 
-export const parseToken = async (token: string) => {
-  const { ok, value } = await guard(verify<JWTPayload>, token, key);
+  static parse = async (token: string) => {
+    const { ok, value } = await guard(verify<TokenContent>, token, key, {
+      ignoreExp: true,
+    });
 
-  return ok ? value : null;
-};
+    return ok ? value : null;
+  };
+}

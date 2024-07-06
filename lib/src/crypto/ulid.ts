@@ -2,7 +2,7 @@ const UINT32_RADIX = Math.pow(2, 32);
 const UINT8_MAX = 0b11111111;
 const ENCODING = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 
-export const generateUlid = (): string => {
+export const generateULID = (): string => {
   const time = Date.now();
   const bytes = crypto.getRandomValues(new Uint8Array(16));
 

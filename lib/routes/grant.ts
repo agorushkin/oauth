@@ -1,7 +1,9 @@
 import type { Handler } from '/lib/data/types.ts';
 
-import { getNumericDate } from 'x/jwt';
+import { Scope } from '/lib/src/auth/scope.ts';
+
 import { generateCode } from '/lib/src/crypto/code.ts';
+import { elapse } from '/lib/src/util/elapse.ts';
 import { res } from '/lib/src/util/response.ts';
 import { db } from '/lib/main.ts';
 
@@ -10,44 +12,47 @@ export const handler: Handler = async (
 ) => {
   if (responded) return;
 
-  const { authed, scope: granted, user } = locals;
+  const { isAuthed, scope, user } = locals;
+  const hasPermissionToGrant = isAuthed && user && scope?.includes('AUTH');
 
-  if (!authed || !user || !granted?.includes('AUTH')) {
+  if (!hasPermissionToGrant) {
     return respond(res('UNAUTHORIZED'));
   }
 
-  if (
-    !query.has('client') ||
-    !query.has('redirect') ||
-    !query.has('scope')
-  ) {
+  const isValidQueryStructure = query.has('client') &&
+    query.has('redirect') &&
+    query.has('scope');
+
+  if (!isValidQueryStructure) {
     return respond(res('INVALID_REQUEST'));
   }
 
   const client = query.get('client') ?? '';
   const target = query.get('redirect') ?? '';
-  const scope = query.get('scope') ?? '';
+  const grant = (query.get('scope') ?? '').split(',');
 
-  if (
-    !client || client.length === 0 ||
-    !redirect || redirect.length === 0 ||
-    !scope || isNaN(parseInt(scope))
-  ) {
+  const isValidQuery = client.length > 0 && target.length > 0 &&
+    Scope.verify(grant);
+
+  if (!isValidQuery) {
     return respond(res('INVALID_REQUEST'));
   }
 
-  if (!db.data?.clients?.[client]) {
+  const clients = db.data?.clients;
+  const isValidClient = client && clients[client];
+
+  if (!isValidClient) {
     return respond(res('UNAUTHORIZED'));
   }
 
   const code = generateCode(4);
 
-  const ok = await db.update(({ codes }) => {
-    codes[code] = {
+  const ok = await db.update(({ flows }) => {
+    flows[code] = {
       client,
-      user: user,
-      scope: parseInt(scope),
-      expires: getNumericDate(60 * 5),
+      user,
+      scope: grant,
+      expires: elapse(60 * 5),
     };
   });
 

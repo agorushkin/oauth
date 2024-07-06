@@ -16,7 +16,7 @@ import { handler as handleGrant } from '/lib/routes/grant.ts';
 import { handler as handleExchange } from '/lib/routes/exchange.ts';
 import { handler as handleRefresh } from '/lib/routes/refresh.ts';
 
-import { handler as handleAuthorization } from '/lib/routes/authorize.ts';
+import { handler as handleAuthorization } from './routes/authenticate.ts';
 import { handler as handleNotFound } from '/lib/routes/not-found.ts';
 
 export const server = new Server<Locals>();

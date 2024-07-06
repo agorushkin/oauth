@@ -1,12 +1,15 @@
 import { Handler as HandleBase } from 'x/http';
-import { PERMISSIONS } from '/lib/data/consts.ts';
+import { PERMISSIONS } from '/lib/data/constants.ts';
 
 export type Handler = HandleBase<Locals>;
 
+export type Permission = keyof typeof PERMISSIONS;
+
 export type Locals = {
   user: string;
-  scope: (keyof typeof PERMISSIONS)[];
-  authed: boolean;
+  scope: Permission[];
+  id: string;
+  isAuthed: boolean;
 };
 
 export type AuthPayload = {
@@ -20,8 +23,9 @@ export type ExchangePayload = {
   secret: string;
 };
 
-export type JWTPayload = {
+export type TokenContent = {
   usr: string;
   scp: number;
   exp: number;
+  jti: string;
 };

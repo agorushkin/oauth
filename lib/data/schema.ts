@@ -1,3 +1,5 @@
+import type { Permission } from '/lib/data/types.ts';
+
 type User = {
   salt: string;
   hash: string;
@@ -5,32 +7,30 @@ type User = {
 
 type RefreshToken = {
   user: string;
+  id: string;
+  scope: Permission[];
   expires: number;
-  token: string;
-  scope: number;
 };
 
 type Code = {
   user: string;
   client: string;
+  scope: Permission[];
   expires: number;
-  scope: number;
 };
 
 type Schema = {
   users: Record<string, User>;
   clients: Record<string, string>;
   refreshes: Record<string, RefreshToken>;
-  codes: Record<string, Code>;
-  invalid: string[];
+  flows: Record<string, Code>;
+  blacklist: string[];
 };
 
 export const Schema: Schema = {
   users: {},
-  clients: {
-    test: '123',
-  },
+  clients: { test: '123' },
   refreshes: {},
-  codes: {},
-  invalid: [],
+  flows: {},
+  blacklist: [],
 };

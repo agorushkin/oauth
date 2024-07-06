@@ -1,4 +1,4 @@
-import { Handler } from 'x/http';
+import type { Handler } from 'x/http';
 
 import { res } from '/lib/src/util/response.ts';
 

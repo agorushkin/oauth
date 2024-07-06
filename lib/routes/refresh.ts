@@ -1,12 +1,14 @@
-import { Handler } from 'x/http';
+import type { Handler } from 'x/http';
 
-import { getNumericDate } from 'x/jwt';
-import { generateToken } from '/lib/src/auth/token.ts';
+import { Token } from '/lib/src/auth/token.ts';
+
+import { generateULID } from '/lib/src/crypto/ulid.ts';
+import { elapse } from '/lib/src/util/elapse.ts';
 import { res } from '/lib/src/util/response.ts';
 import { db } from '/lib/main.ts';
 
 export const handler: Handler = async (
-  { cookie, responded, response, respond },
+  { cookie, responded, respond },
 ) => {
   if (responded) return;
 
@@ -15,44 +17,40 @@ export const handler: Handler = async (
   }
 
   const refresh = cookie.get('refresh') ?? '';
+  const refreshes = db.data?.refreshes;
 
   if (!refresh || refresh.length === 0) {
     return respond(res('UNAUTHORIZED'));
   }
 
-  const refreshEntry = db.data?.refreshes?.[refresh];
+  const entry = refreshes[refresh];
 
-  if (!refreshEntry || refreshEntry.expires < Date.now()) {
+  if (!entry || entry.expires < elapse(0)) {
     return respond(res('UNAUTHORIZED'));
   }
 
-  const { refresh: newRefresh, token, expires } = await generateToken(
-    refreshEntry.user,
-    refreshEntry.scope,
+  const { token, refresh: newRefresh, expires } = await Token.generate(
+    entry.user,
+    entry.scope,
   );
 
-  const updated = await db.update(({ refreshes, invalid }) => {
-    invalid.push(refreshes?.[refresh]?.token);
+  const isUpated = await db.update(({ refreshes, blacklist }) => {
+    blacklist.push();
     delete refreshes[refresh];
 
-    const scope = refreshEntry.scope;
+    const scope = entry.scope;
 
     refreshes[newRefresh] = {
-      user: refreshEntry.user,
-      token,
+      user: entry.user,
+      id: generateULID(),
       scope,
-      expires: getNumericDate(60 * 60 * 24 * 7) * 1000,
+      expires: elapse(60 * 60 * 24 * 7),
     };
   });
 
-  if (updated) {
-    response.status = 200;
-    response.body = JSON.stringify({
-      expires,
-      refresh: newRefresh,
-      token,
-    });
-  } else res('INTERNAL_ERROR', response);
-
-  respond();
+  respond(
+    isUpated
+      ? { ...res('OK'), body: JSON.stringify({ expires, refresh, token }) }
+      : res('INTERNAL_ERROR'),
+  );
 };

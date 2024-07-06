@@ -1,4 +1,4 @@
-import { KEY_CONFIG } from '/lib/data/consts.ts';
+import { KEY_CONFIG } from '../../data/constants.ts';
 
 const load = async () => {
   try {

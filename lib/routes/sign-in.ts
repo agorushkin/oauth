@@ -1,10 +1,11 @@
-import { Handler } from 'x/http';
-import { AuthPayload } from '/lib/data/types.ts';
+import type { Handler } from 'x/http';
+import type { AuthPayload, Permission } from '/lib/data/types.ts';
 
-import { getNumericDate } from 'x/jwt';
-import { calculateScope } from '/lib/src/auth/scope.ts';
+import { Token } from '/lib/src/auth/token.ts';
+
 import { hashPassword } from '/lib/src/crypto/hash.ts';
-import { generateToken } from '/lib/src/auth/token.ts';
+import { generateULID } from '/lib/src/crypto/ulid.ts';
+import { elapse } from '/lib/src/util/elapse.ts';
 import { res } from '/lib/src/util/response.ts';
 import { db } from '/lib/main.ts';
 
@@ -13,18 +14,21 @@ export const handler: Handler = async (
 ) => {
   if (responded) return;
 
+  const users = db.data?.users;
   const data = await json<AuthPayload>()
     .catch(() => null);
 
-  if (
-    !data ||
-    typeof data.name !== 'string' ||
-    typeof data.password !== 'string'
-  ) {
+  const isPayloadValid = data &&
+    typeof data?.name === 'string' &&
+    typeof data?.password === 'string';
+
+  if (!isPayloadValid) {
     return respond(res('INVALID_PAYLOAD'));
   }
 
-  if (!db.data.users[data.name]) {
+  const isUserValid = users && users[data.name];
+
+  if (!isUserValid) {
     return respond(res('UNAUTHORIZED'));
   }
 
@@ -35,27 +39,27 @@ export const handler: Handler = async (
     return respond(res('UNAUTHORIZED'));
   }
 
-  const scope = calculateScope(['READ', 'WRITE', 'EXEC', 'AUTH']);
+  const scope = ['READ', 'WRITE', 'EXEC', 'AUTH'] as Permission[];
   const {
     expires,
     refresh,
     token,
-  } = await generateToken(
+  } = await Token.generate(
     data.name,
     scope,
   );
 
-  const ok = await db.update(({ refreshes }) => {
+  const isUpdated = await db.update(({ refreshes }) => {
     refreshes[refresh] = {
       user: data.name,
-      token,
+      id: generateULID(),
       scope,
-      expires: getNumericDate(60 * 60 * 24 * 90),
+      expires: elapse(60 * 60 * 24 * 90),
     };
   });
 
   respond(
-    ok
+    isUpdated
       ? { ...res('OK'), body: JSON.stringify({ expires, refresh, token }) }
       : res('INTERNAL_ERROR'),
   );

@@ -1,4 +1,4 @@
-import type { PERMISSIONS } from '/lib/data/consts.ts';
+import type { Permission } from '/lib/data/types.ts';
 import type { Handler } from '/lib/data/types.ts';
 
 import { match } from '/lib/src/util/match.ts';
@@ -12,12 +12,13 @@ export const handler: Handler = (
 ) => {
   if (responded) return;
 
-  const { authed, scope, user } = locals;
+  const { isAuthed, scope, user } = locals;
+  const isValidSession = isAuthed && user && scope;
 
-  if (!authed || !user || !scope) return;
+  if (!isValidSession) return;
 
   const action = (params.get('action') ?? '')
-    .toUpperCase() as keyof typeof PERMISSIONS;
+    .toUpperCase() as Permission;
 
   const has = scope.includes.bind(scope);
 

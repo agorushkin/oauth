@@ -11,32 +11,37 @@ export const handler: Handler = async (
 ) => {
   if (responded) return;
 
+  const users = db.data?.users;
   const data = await json<AuthPayload>()
     .catch(() => null);
 
-  if (
-    !data ||
-    typeof data.name !== 'string' ||
-    typeof data.password !== 'string'
-  ) {
+  const isPayloadValid = data &&
+    typeof data?.name === 'string' &&
+    typeof data?.password === 'string';
+
+  if (!isPayloadValid) {
     return respond(res('INVALID_PAYLOAD'));
   }
 
   const { name, password } = data;
+  const isNameValid = /^[A-Za-z]{3,12}$/.test(name);
+  const isPasswordValid = /^[A-Za-z0-9!@#$%^&*()_+]{8,32}$/.test(password);
 
-  if (!/^[_A-Za-z]{3,12}$/.test(name)) {
+  if (!isNameValid) {
     return respond(res('INVALID_NAME'));
   }
 
-  if (!/^[A-Za-z0-9!@#$%^&*()_+]{8,32}$/.test(password)) {
+  if (!isPasswordValid) {
     return respond(res('INVALID_PASSWORD'));
   }
 
-  if (db.data?.users?.[name]) {
+  const isConflictPresent = users && users[name];
+
+  if (isConflictPresent) {
     return respond(res('CONFLICT'));
   }
 
-  const ok = await db.update(async ({ users }) => {
+  const isUpdated = await db.update(async ({ users }) => {
     const salt = generateSalt();
     const hash = await hashPassword(password, salt);
 
@@ -46,5 +51,5 @@ export const handler: Handler = async (
     };
   });
 
-  respond(ok ? res('CREATED') : res('INTERNAL_ERROR'));
+  respond(isUpdated ? res('CREATED') : res('INTERNAL_ERROR'));
 };
