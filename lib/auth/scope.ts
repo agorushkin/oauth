@@ -1,6 +1,6 @@
 import type { Permission } from '/lib/data/types.ts';
 
-import { PERMISSIONS } from '../../data/constants.ts';
+import { PERMISSIONS } from '/lib/data/constants.ts';
 
 export class Scope {
   static from = (

@@ -9,7 +9,7 @@ export type Locals = {
   user: string;
   scope: Permission[];
   id: string;
-  isAuthed: boolean;
+  is_authed: boolean;
 };
 
 export type AuthPayload = {
@@ -19,7 +19,7 @@ export type AuthPayload = {
 
 export type ExchangePayload = {
   code: string;
-  client: string;
+  agent: string;
   secret: string;
 };
 

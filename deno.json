@@ -6,9 +6,10 @@
     "x/jwt": "https://raw.githubusercontent.com/Zaubrik/djwt/09e3de7/mod.ts"
   },
   "tasks": {
-    "debug": "deno run -A --watch main.ts"
+    "debug": "deno -RWN --watch main.ts"
   },
   "fmt": {
+    "lineWidth": 120,
     "useTabs": false,
     "indentWidth": 2,
     "semiColons": true,

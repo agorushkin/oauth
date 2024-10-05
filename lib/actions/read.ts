@@ -1,12 +1,12 @@
 import type { ServerRequest } from 'x/http';
 import type { Locals } from '/lib/data/types.ts';
 
-export const write = (
+export const perform_read = (
   response: ServerRequest<Locals>['response'],
   user: string,
 ) => {
   response.status = 200;
-  response.body = `modified file as ${user}`;
+  response.body = `accessed file as ${user}`;
 
   return true;
 };

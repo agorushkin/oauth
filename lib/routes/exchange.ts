@@ -1,70 +1,63 @@
 import type { Handler } from 'x/http';
 import type { ExchangePayload } from '/lib/data/types.ts';
 
-import { Token } from '/lib/src/auth/token.ts';
+import { Token } from '/lib/auth/token.ts';
 
-import { generateULID } from '/lib/src/crypto/ulid.ts';
-import { elapse } from '/lib/src/util/elapse.ts';
-import { res } from '/lib/src/util/response.ts';
-import { db } from '/lib/main.ts';
+import { db } from '/main.ts';
+import { elapse } from '/lib/utils/elapse.ts';
+import { generate_ulid } from '/lib/crypto/ulid.ts';
+import { prepare } from '/lib/utils/response.ts';
 
 export const handler: Handler = async (
-  { json, responded, response, respond },
+  { json, respond, responded },
 ) => {
   if (responded) return;
 
-  const data = await json<ExchangePayload>()
+  const agents = db.data.agents;
+  const exchange_flows = db.data.exchange_flows;
+  const exchange_data = await json<ExchangePayload>()
     .catch(() => null);
 
-  const isPayloadValid = !!data &&
-    typeof data.code === 'string' &&
-    typeof data.client === 'string' &&
-    typeof data.secret === 'string';
+  const is_payload_valid = !!exchange_data &&
+    typeof exchange_data.code === 'string' &&
+    typeof exchange_data.agent === 'string' &&
+    typeof exchange_data.secret === 'string';
 
-  if (!isPayloadValid) {
-    res('INVALID_PAYLOAD', response);
+  if (!is_payload_valid) return respond(prepare('INVALID_PAYLOAD'));
 
-    return respond();
-  }
+  const { code, agent, secret } = exchange_data;
 
-  const { code, client, secret } = data;
+  const is_auth_valid = agents &&
+    exchange_flows &&
+    agents[agent] === secret &&
+    exchange_flows[code].agent === agent &&
+    exchange_flows[code].expires > Date.now();
 
-  const flows = db.data.flows;
-  const clients = db.data.clients;
+  if (!is_auth_valid) return respond(prepare('UNAUTHORIZED'));
 
-  const isAuthFlowValid = flows && clients &&
-    clients[client] === secret &&
-    flows[code].client === client &&
-    flows[code].expires > Date.now();
-
-  if (!isAuthFlowValid) {
-    res('UNAUTHORIZED', response);
-
-    return respond();
-  }
-
-  const { user, scope } = flows[code];
+  const { user, scope } = exchange_flows[code];
 
   const {
-    token,
-    refresh,
+    access_token,
+    refresh_token,
     expires,
   } = await Token.generate(user, scope);
 
-  const isUpdated = await db.update(({ refreshes, flows }) => {
-    delete flows[code];
+  const refresh_entry = {
+    user,
+    id: generate_ulid(),
+    scope,
+    expires: elapse(60 * 60),
+  };
 
-    refreshes[refresh] = {
-      user,
-      id: generateULID(),
-      scope,
-      expires: elapse(60 * 60 * 24 * 90),
-    };
+  const is_updated = await db.update(({ refresh_tokens, exchange_flows }) => {
+    delete exchange_flows[code];
+    refresh_tokens[refresh_token] = refresh_entry;
   });
 
-  respond(
-    isUpdated
-      ? { ...res('OK'), body: JSON.stringify({ token, refresh, expires }) }
-      : res('INTERNAL_ERROR'),
-  );
+  const response_content = is_updated
+    ? { ...prepare('OK'), body: JSON.stringify({ access_token, refresh_token, expires }) }
+    : prepare('INTERNAL_ERROR');
+
+  respond(response_content);
 };

@@ -2,5 +2,5 @@
 
 # Private files
 
-lib/data/data.json
-key/
+data.json
+key.json

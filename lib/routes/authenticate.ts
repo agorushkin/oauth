@@ -1,64 +1,50 @@
 import type { Handler } from '/lib/data/types.ts';
 
-import { Scope } from '/lib/src/auth/scope.ts';
-import { Token } from '/lib/src/auth/token.ts';
+import { Scope } from '/lib/auth/scope.ts';
+import { Token } from '/lib/auth/token.ts';
 
-import { elapse } from '/lib/src/util/elapse.ts';
-import { res } from '/lib/src/util/response.ts';
-import { db } from '/lib/main.ts';
+import { db } from '/main.ts';
+import { elapse } from '/lib/utils/elapse.ts';
+import { prepare } from '/lib/utils/response.ts';
 
 export const handler: Handler = async (
-  { headers, locals, responded, response },
+  { headers, locals, responded },
 ) => {
   if (responded) return;
 
-  locals.isAuthed = false;
+  locals.is_authed = false;
+
+  const users = db.data?.users;
+  const token_blacklist = db.data?.token_blacklist || [];
 
   const header = headers.get('authorization');
-  const isHeaderValid = header && header.startsWith('Bearer ');
+  const is_header_valid = header && header.startsWith('Bearer ');
 
-  if (!isHeaderValid) {
-    res('UNAUTHORIZED', response);
+  if (!is_header_valid) return prepare('UNAUTHORIZED');
 
-    return;
-  }
+  const access_token = header.replace('Bearer ', '');
+  const is_token_valid = access_token.length > 0;
 
-  const token = header.replace('Bearer ', '');
-  const isTokenValid = token.length > 0;
+  if (!is_token_valid) return prepare('UNAUTHORIZED');
 
-  if (!isTokenValid) {
-    res('UNAUTHORIZED', response);
+  const payload = await Token.parse(access_token);
 
-    return;
-  }
+  const is_payload_valid = payload !== null;
+  const is_token_expired = !is_payload_valid || payload.exp < elapse(0);
+  const is_token_blacklisted = !is_payload_valid || token_blacklist.includes(payload.jti);
 
-  const payload = await Token.parse(token);
+  const is_token_actual = !is_token_expired && !is_token_blacklisted;
 
-  const isPayloadValid = !!payload;
-  const isTokenExpired = !isPayloadValid || payload.exp < elapse(0);
-  const isTokenBlacklisted = !isPayloadValid ||
-    db.data?.blacklist?.includes(payload.jti);
+  if (!is_token_actual) return prepare('UNAUTHORIZED');
 
-  const isTokenActual = !isTokenExpired && !isTokenBlacklisted;
+  const is_user_actual = users && payload.usr in users;
 
-  if (!isTokenActual) {
-    res('UNAUTHORIZED', response);
-
-    return;
-  }
-
-  const isUserActual = db.data.users[payload.usr];
-
-  if (!isUserActual) {
-    res('UNAUTHORIZED', response);
-
-    return;
-  }
+  if (!is_user_actual) return prepare('UNAUTHORIZED');
 
   const scope = Scope.parse(payload.scp);
 
   locals.user = payload.usr;
   locals.scope = scope;
-  locals.isAuthed = true;
+  locals.is_authed = true;
   locals.id = payload.jti;
 };

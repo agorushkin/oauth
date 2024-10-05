@@ -1,62 +1,57 @@
-import type { Handler } from '/lib/data/types.ts';
+import type { Handler, Permission } from '/lib/data/types.ts';
 
-import { Scope } from '/lib/src/auth/scope.ts';
+import { Scope } from '/lib/auth/scope.ts';
 
-import { generateCode } from '/lib/src/crypto/code.ts';
-import { elapse } from '/lib/src/util/elapse.ts';
-import { res } from '/lib/src/util/response.ts';
-import { db } from '/lib/main.ts';
+import { db } from '/main.ts';
+import { elapse } from '/lib/utils/elapse.ts';
+import { generate_code } from '/lib/crypto/code.ts';
+import { prepare } from '/lib/utils/response.ts';
 
 export const handler: Handler = async (
-  { query, locals, responded, respond, redirect },
+  { query, locals, redirect, respond, responded },
 ) => {
   if (responded) return;
 
-  const { isAuthed, scope, user } = locals;
-  const hasPermissionToGrant = isAuthed && user && scope?.includes('AUTH');
+  const agents = db.data?.agents;
+  const { is_authed, scope, user } = locals;
+  const has_permission_to_grant = is_authed && user && scope?.includes('AUTH');
 
-  if (!hasPermissionToGrant) {
-    return respond(res('UNAUTHORIZED'));
-  }
+  if (!has_permission_to_grant) return respond(prepare('UNAUTHORIZED'));
 
-  const isValidQueryStructure = query.has('client') &&
+  const is_valid_query_structure = query.has('client') &&
     query.has('redirect') &&
     query.has('scope');
 
-  if (!isValidQueryStructure) {
-    return respond(res('INVALID_REQUEST'));
-  }
+  if (!is_valid_query_structure) return respond(prepare('INVALID_REQUEST'));
 
-  const client = query.get('client') ?? '';
-  const target = query.get('redirect') ?? '';
-  const grant = (query.get('scope') ?? '').split(',');
+  const agent = query.get('agent') ?? '';
+  const target_url = query.get('redirect') ?? '';
+  const grant_scope = (query.get('scope') ?? '').split(',') as Permission[];
 
-  const isValidQuery = client.length > 0 && target.length > 0 &&
-    Scope.verify(grant);
+  const is_valid_query = agent.length > 0 &&
+    target_url.length > 0 &&
+    Scope.verify(grant_scope);
 
-  if (!isValidQuery) {
-    return respond(res('INVALID_REQUEST'));
-  }
+  if (!is_valid_query) return respond(prepare('INVALID_REQUEST'));
 
-  const clients = db.data?.clients;
-  const isValidClient = client && clients[client];
+  const is_valid_client = agent.length && agents[agent];
 
-  if (!isValidClient) {
-    return respond(res('UNAUTHORIZED'));
-  }
+  if (!is_valid_client) return respond(prepare('UNAUTHORIZED'));
 
-  const code = generateCode(4);
+  const code = generate_code(4);
+  const exchange_flow_entry = {
+    agent,
+    user,
+    scope: grant_scope,
+    expires: elapse(60 * 5),
+  };
 
-  const ok = await db.update(({ flows }) => {
-    flows[code] = {
-      client,
-      user,
-      scope: grant,
-      expires: elapse(60 * 5),
-    };
+  const is_updated = await db.update(({ exchange_flows }) => {
+    exchange_flows[code] = exchange_flow_entry;
   });
 
-  redirect(
-    target + ok ? `?code=${code}` : '?error=server_error',
-  );
+  // If you read this, you found an easter egg! 🥚
+  // Please email me at arsenii.gorushkin@gmail.com saying that you found it!
+  const final_destination = `${target_url}${is_updated ? `?code=${code}` : '?error=server_error'}`;
+  redirect(final_destination);
 };

@@ -1,8 +1,8 @@
 import type { ServerResponse } from 'x/http';
 
-import { RESPONSES } from '../../data/constants.ts';
+import { RESPONSES } from '../data/constants.ts';
 
-export const res = (
+export const prepare = (
   type: keyof typeof RESPONSES,
   response?: ServerResponse,
 ) => {

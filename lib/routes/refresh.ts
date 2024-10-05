@@ -1,56 +1,47 @@
-import type { Handler } from 'x/http';
+import type { Handler } from '/lib/data/types.ts';
 
-import { Token } from '/lib/src/auth/token.ts';
+import { Token } from '/lib/auth/token.ts';
 
-import { generateULID } from '/lib/src/crypto/ulid.ts';
-import { elapse } from '/lib/src/util/elapse.ts';
-import { res } from '/lib/src/util/response.ts';
-import { db } from '/lib/main.ts';
+import { db } from '/main.ts';
+import { elapse } from '/lib/utils/elapse.ts';
+import { generate_ulid } from '/lib/crypto/ulid.ts';
+import { prepare } from '/lib/utils/response.ts';
 
 export const handler: Handler = async (
-  { cookie, responded, respond },
+  { cookie, respond, responded },
 ) => {
   if (responded) return;
 
-  if (!cookie.has('refresh')) {
-    return respond(res('UNAUTHORIZED'));
-  }
+  const refresh_tokens = db.data?.refresh_tokens;
+  const refresh_token = cookie.get('refresh_token');
 
-  const refresh = cookie.get('refresh') ?? '';
-  const refreshes = db.data?.refreshes;
+  if (!refresh_token) return respond(prepare('UNAUTHORIZED'));
 
-  if (!refresh || refresh.length === 0) {
-    return respond(res('UNAUTHORIZED'));
-  }
+  const refresh_entry = refresh_tokens[refresh_token];
+  const is_refresh_expired = !refresh_entry || refresh_entry.expires < elapse(0);
 
-  const entry = refreshes[refresh];
+  if (!is_refresh_expired) return respond(prepare('UNAUTHORIZED'));
 
-  if (!entry || entry.expires < elapse(0)) {
-    return respond(res('UNAUTHORIZED'));
-  }
-
-  const { token, refresh: newRefresh, expires } = await Token.generate(
-    entry.user,
-    entry.scope,
+  const { access_token, refresh_token: new_refresh_token, expires } = await Token.generate(
+    refresh_entry.user,
+    refresh_entry.scope,
   );
 
-  const isUpated = await db.update(({ refreshes, blacklist }) => {
-    blacklist.push();
-    delete refreshes[refresh];
+  const new_refresh_entry = {
+    user: refresh_entry.user,
+    id: generate_ulid(),
+    scope: refresh_entry.scope,
+    expires: elapse(60 * 60 * 24 * 7),
+  };
 
-    const scope = entry.scope;
-
-    refreshes[newRefresh] = {
-      user: entry.user,
-      id: generateULID(),
-      scope,
-      expires: elapse(60 * 60 * 24 * 7),
-    };
+  const is_updated = await db.update(({ refresh_tokens }) => {
+    delete refresh_tokens[refresh_token];
+    refresh_tokens[new_refresh_token] = new_refresh_entry;
   });
 
-  respond(
-    isUpated
-      ? { ...res('OK'), body: JSON.stringify({ expires, refresh, token }) }
-      : res('INTERNAL_ERROR'),
-  );
+  const response_content = is_updated
+    ? { ...prepare('OK'), expires, access_token, refresh_token: new_refresh_token }
+    : prepare('INTERNAL_ERROR');
+
+  respond(response_content);
 };

@@ -1,4 +1,4 @@
-export const generateCode = (length: number) => {
+export const generate_code = (length: number) => {
   const bytes = new Uint8Array(length);
   crypto.getRandomValues(bytes);
 
